@@ -1,0 +1,249 @@
+import tkinter as tk
+
+root = tk.Tk()
+root.title("Cute Stickman Elevator")
+root.geometry("420x650")
+root.configure(bg="lightblue")
+
+# CANVAS BACKGROUND
+canvas = tk.Canvas(
+    root,
+    width=260,
+    height=450,
+    bg="lightblue",
+    highlightthickness=0
+)
+canvas.pack(pady=10)
+
+# SOUND
+def beep():
+    root.bell()
+
+# FLOOR POSITIONS
+floors = {
+    1: 350,
+    2: 280,
+    3: 210,
+    4: 140,
+    5: 70
+}
+
+# SHAFT BACKGROUND
+canvas.create_rectangle(
+    60, 20, 200, 430,
+    fill="#87CEFA",
+    outline="white",
+    width=2
+)
+
+# FLOOR LINES
+for i in range(1, 6):
+    y = floors[i] + 80
+    canvas.create_line(60, y, 200, y, fill="white", width=2)
+
+# ELEVATOR CABIN
+cabin = canvas.create_rectangle(
+    90, floors[1],
+    170, floors[1] + 80,
+    fill="#E0FFFF",
+    outline="white",
+    width=2
+)
+
+# DOORS
+left = canvas.create_rectangle(
+    90, floors[1],
+    130, floors[1] + 80,
+    fill="#4682B4",
+    outline="white"
+)
+
+right = canvas.create_rectangle(
+    130, floors[1],
+    170, floors[1] + 80,
+    fill="#4682B4",
+    outline="white"
+)
+
+# SMALL BOX DOORKNOBS
+knob_left = canvas.create_rectangle(
+    120, floors[1] + 35,
+    126, floors[1] + 41,
+    fill="gold",
+    outline="black"
+)
+
+knob_right = canvas.create_rectangle(
+    134, floors[1] + 35,
+    140, floors[1] + 41,
+    fill="gold",
+    outline="black"
+)
+
+# STICKMAN PASSENGER
+head = canvas.create_oval(
+    108, floors[1] + 18,
+    122, floors[1] + 32,
+    fill="black"
+)
+
+body = canvas.create_line(
+    115, floors[1] + 32,
+    115, floors[1] + 52,
+    fill="black",
+    width=2
+)
+
+arm_left = canvas.create_line(
+    115, floors[1] + 40,
+    105, floors[1] + 47,
+    fill="black",
+    width=2
+)
+
+arm_right = canvas.create_line(
+    115, floors[1] + 40,
+    125, floors[1] + 47,
+    fill="black",
+    width=2
+)
+
+leg_left = canvas.create_line(
+    115, floors[1] + 52,
+    107, floors[1] + 64,
+    fill="black",
+    width=2
+)
+
+leg_right = canvas.create_line(
+    115, floors[1] + 52,
+    123, floors[1] + 64,
+    fill="black",
+    width=2
+)
+
+label = tk.Label(
+    root,
+    text="Floor: 1",
+    font=("Arial", 14, "bold"),
+    bg="lightblue",
+    fg="white"
+)
+label.pack()
+
+queue = []
+moving = False
+buttons = []
+
+# OPEN DOOR
+def open_door():
+    for _ in range(12):
+        canvas.move(left, -2, 0)
+        canvas.move(right, 2, 0)
+
+        canvas.move(knob_left, -2, 0)
+        canvas.move(knob_right, 2, 0)
+
+        root.update()
+        canvas.after(10)
+
+# CLOSE DOOR
+def close_door():
+    for _ in range(12):
+        canvas.move(left, 2, 0)
+        canvas.move(right, -2, 0)
+
+        canvas.move(knob_left, 2, 0)
+        canvas.move(knob_right, -2, 0)
+
+        root.update()
+        canvas.after(10)
+
+# MOVE ELEVATOR
+def move_to_floor(floor):
+    if floor not in queue:
+        queue.append(floor)
+    process_queue()
+
+def process_queue():
+    global moving
+
+    if moving or not queue:
+        return
+
+    moving = True
+    target = queue.pop(0)
+
+    for b in buttons:
+        b.config(state="disabled")
+
+    close_door()
+    beep()
+
+    target_y = floors[target]
+
+    while True:
+        y = canvas.coords(cabin)[1]
+
+        if abs(y - target_y) < 2:
+            break
+
+        step = -2 if y > target_y else 2
+
+        items = [
+            cabin, left, right,
+            knob_left, knob_right,
+            head, body,
+            arm_left, arm_right,
+            leg_left, leg_right
+        ]
+
+        for item in items:
+            canvas.move(item, 0, step)
+
+        root.update()
+        canvas.after(10)
+
+    label.config(text=f"Floor: {target}")
+
+    open_door()
+    beep()
+
+    for b in buttons:
+        b.config(state="normal")
+
+    moving = False
+    process_queue()
+
+# BUTTON AREA
+frame = tk.Frame(root, bg="lightblue")
+frame.pack(pady=10)
+
+tk.Label(
+    frame,
+    text="Floor Control",
+    font=("Arial", 12, "bold"),
+    bg="lightblue",
+    fg="white"
+).pack()
+
+btn_frame = tk.Frame(frame, bg="lightblue")
+btn_frame.pack()
+
+for i in range(1, 6):
+    btn = tk.Button(
+        btn_frame,
+        text=str(i),
+        width=6,
+        height=2,
+        bg="#5DADE2",
+        fg="white",
+        font=("Arial", 10, "bold"),
+        command=lambda x=i: move_to_floor(x)
+    )
+    btn.grid(row=0, column=i-1, padx=5)
+    buttons.append(btn)
+
+open_door()
+
+root.mainloop()
